@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="template">	
+    <script type="text/html" id="role-privileges-form-component-template">
+		<div class="modal" tabindex="-1" role="dialog">
+	  		<div class="modal-dialog modal-lg" role="document">
+    			<div class="modal-content">
+      				<form id="role-privilege-form" @submit="submit">
+	      				<div class="modal-header">
+	        				<h5 class="modal-title">Assign Privileges to Role {{roleCode}}</h5>
+	        				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          					<span aria-hidden="true">&times;</span>
+	        				</button>
+	      				</div>
+	      				<div class="modal-body">
+							<template v-for="d in data">
+                  				<div class="card card-default">
+                    				<div class="card-header">
+                      					<h3 class="card-title">
+                        					<a data-toggle="collapse" data-card-widget="collapse" href="javascript:void(0)">{{d.moduleName}}</a>
+                      					</h3>
+            							<div class="card-tools">
+              								<button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+							            </div>
+                    				</div>
+    	        				    	<div class="card-body">
+						                	<table class="table table-bordered table-hover">
+            	      							<thead>
+                	  								<tr>
+                    									<th>Screen Name</th>
+			            	        					<th>Action</th>
+			                	  					</tr>
+	                  							</thead>
+   	              								<tbody>
+													<tr v-for="s in d.screens">
+														<td class="text-primary"><strong>{{s.screenName}}</strong></td>
+														<td>
+															<div class="row">
+																<div class="form-check col-sm-2" v-for="p in s.privileges">
+    	                											<input type="checkbox" class="form-check-input":value="p.privilegeCode" name="privilegeCode" v-model="p.checked">
+        	            											<label class="form-check-label" for="exampleCheck1">{{p.name}}</label>
+            	      											</div>
+															</div>
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+								</div>
+							</template>
+
+
+
+
+	      				</div>
+	      				<div class="modal-footer">
+	        				<button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="processing">Close</button>
+	        				<button type="submit" class="btn btn-primary" :disabled="processing">
+								<template v-if="processing">Saving Privilges...</template>
+								<template v-if="!processing">Save Privilges</template>
+							</button>
+	      				</div>
+      				</form>
+    			</div>
+  			</div>
+		</div>
+
+	</script>
+</div>
+	<div th:fragment="scripts">
+		<script type="text/javascript">
+		
+			Vue.component('role-privileges-form', {
+				template: '#role-privileges-form-component-template',
+				props: ["roleCode", "show"],
+				data: function(){
+					return {
+						loading: false,
+						processing: false,
+						error: false,
+						data: [],
+						showDialog: false
+					}
+				},
+				watch: {
+					show: function(newVal){
+						if(newVal){
+							$(this.$el).modal('show')
+						}
+					},
+					roleCode: function(newVal){
+						if(newVal){
+							this.loadData();
+						}else{
+							this.data = Object.assign([]);
+						}					
+					}
+				},
+				created: function(){
+					var that = this;
+				},
+				mounted: function(){
+					var that = this;
+					$(this.$el).on('hidden.bs.modal', function(){
+						that.$emit('close');
+					});
+				},
+				methods: {
+					loadData: function(){
+						var that = this;
+						this.loading = true;
+						
+						$.getJSON( appContext + "api/roles/" + this.roleCode + '/privileges', function( data ) {
+							  that.data = data;
+							  that.loading = false;
+							  that.error = false;
+						}).fail(function(response){
+								showErrorFromResponse(response)
+							  	that.loading = false;
+							  	that.error = true;
+						});
+						
+					},
+					submit: function(e){
+						var that = this;
+						e.preventDefault();
+						var url = appContext + "api/roles/" + that.roleCode+"/privileges";
+						
+						$('#role-privilege-form').ajaxSubmit({
+							beforeSubmit: function(formData, jqForm, options){
+								that.processing = $(jqForm).valid();
+								return that.processing;
+							},
+							success: function(data){
+								that.processing = false;
+								showSuccessMessage("Privileges updated successfully");
+								that.$emit('updated', {roleCode: that.roleCode});
+								$(that.$el).modal('hide')
+							},
+							error: function(response){
+								showErrorFromResponse(response);
+								that.processing = false;
+							},
+							url: url,
+							type: 'POST'
+						});
+					}
+				}
+				
+			});
+		
+		</script>	
+	</div>
+
+</html>

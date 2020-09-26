@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="template">	
+    <script type="text/html" id="role-form-component-template">
+		<div class="modal" tabindex="-1" role="dialog">
+	  		<div class="modal-dialog" role="document">
+    			<div class="modal-content">
+      				<form id="role-form" @submit="submit">
+	      				<div class="modal-header">
+	        				<h5 class="modal-title">Add New Role</h5>
+	        				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          					<span aria-hidden="true">&times;</span>
+	        				</button>
+	      				</div>
+	      				<div class="modal-body">
+							<div class="form-group">
+                    			<label for="roleCode">Role Code</label>
+                    			<input type="text" class="form-control required" name="roleCode" placeholder="Role Code" v-model="data.roleCode">
+                  			</div>
+							<div class="form-group">
+                    			<label for="roleName">Role Name</label>
+                    			<input type="text" class="form-control required" name="roleName" placeholder="Role Name" v-model="data.roleName">
+                  			</div>
+							<div class="form-group">
+                          		<label for="admin">Admin</label>
+								<select name="admin" class="form-control" v-model="data.admin">
+									<option value="true">Yes</option>
+									<option value="false">No</option>
+								</select>
+                        	</div>
+	      				</div>
+	      				<div class="modal-footer">
+	        				<button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="processing">Close</button>
+	        				<button type="submit" class="btn btn-primary" :disabled="processing">
+								<template v-if="processing">Saving Role...</template>
+								<template v-if="!processing">Save Role</template>
+							</button>
+	      				</div>
+      				</form>
+    			</div>
+  			</div>
+		</div>
+
+	</script>
+</div>
+	<div th:fragment="scripts">
+		<script type="text/javascript">
+		
+			Vue.component('role-form', {
+				template: '#role-form-component-template',
+				props: ["roleCode", "show"],
+				data: function(){
+					return {
+						loading: false,
+						processing: false,
+						error: false,
+						data: {admin: false},
+						showDialog: false
+					}
+				},
+				watch: {
+					show: function(newVal){
+						if(newVal){
+							$(this.$el).modal('show')
+						}
+					},
+					roleCode: function(newVal){
+						if(newVal){
+							this.loadData();
+						}else{
+							this.data = Object.assign({admin: false});
+						}					
+					}
+				},
+				created: function(){
+					var that = this;
+				},
+				mounted: function(){
+					var that = this;
+					$(this.$el).on('hidden.bs.modal', function(){
+						that.$emit('close');
+					});
+				},
+				methods: {
+					loadData: function(){
+						var that = this;
+						this.loading = true;
+						
+						$.getJSON( appContext + "api/roles/" + this.roleCode, function( data ) {
+							  that.data = data;
+							  that.loading = false;
+							  that.error = false;
+						}).fail(function(response){
+								showErrorFromResponse(response)
+							  	that.loading = false;
+							  	that.error = true;
+						});
+						
+					},
+					submit: function(e){
+						var that = this;
+						e.preventDefault();
+						var url = appContext + "api/roles" + (!that.roleCode ? '' : '/' + that.roleCode);
+						
+						$('#role-form').ajaxSubmit({
+							beforeSubmit: function(formData, jqForm, options){
+								that.processing = $(jqForm).valid();
+								return that.processing;
+							},
+							success: function(data){
+								that.processing = false;
+								if(that.roleCode){
+									showSuccessMessage("Role updated successfully");
+								}else{
+									showSuccessMessage("Role added successfully");
+								}
+								that.$emit('created', {roleCode: data});
+								$(that.$el).modal('hide')
+							},
+							error: function(response){
+								showErrorFromResponse(response);
+							},
+							url: url,
+							type: 'POST'
+						});
+					}
+				}
+				
+			});
+		
+		</script>	
+	</div>
+
+</html>

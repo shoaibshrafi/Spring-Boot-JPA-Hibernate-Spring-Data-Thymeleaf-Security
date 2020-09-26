@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="template">	
+    <script type="text/html" id="select-account-component-template">
+		<select class="select2bs4 select2-hidden-accessible" name="code" style="width: 100%">
+			<slot></slot>
+		</select>
+	</script>
+</div>
+<div th:fragment="scripts">
+	<script type="text/javascript">
+	
+		Vue.component('select-account',{
+			template: '#select-account-component-template',
+			props: ['groupAccount', 'levelGt', 'selectedCode', 'selectedName'],
+			data: function(){
+				return {
+					pageSize: 10
+				}
+			},
+			mounted: function(){
+				var that = this
+				that.initSelect2();
+				if(that.selectedCode){
+					that.addOption();
+				}
+			},
+			watch: {
+				"selectedCode": function(newVal){
+					if(newVal){
+						this.addOption();
+					}
+				},
+			},
+			methods: {
+				initSelect2: function(){
+					var that = this;
+					$(this.$el).select2({
+						theme:'bootstrap4',
+						dropdownParent: $(this.$el).parent(),
+						placeholder: 'Select Account',
+						allowClear: true,
+						ajax: {
+							url: appContext + "api/accounts/lookup",
+							dataType: "json",
+							data: function(params){
+								var params = {
+									search: params.term,
+									pageNo: params.page,
+									pageSize: that.pageSize,
+									groupAccount: that.groupAccount
+								}
+								if(that.levelGt){
+									params['levelGt'] = that.levelGt;
+								}
+								return params;
+								
+							},
+							type: "GET",
+							cache: true,
+							processResults: function(data){
+								_.map(data, function(item){
+									item['id'] = item.code,
+									item['text'] = item.code + " - " + item.name;
+								})
+								return {
+									results: data,
+									pagination: {
+										more: data.length == that.pageSize
+									}
+								}
+							},
+						}
+					})
+					.on('select2:select', function(e){
+						that.$emit('input', e.params.data.id);
+					})
+					.on('select2:unselect', function(e){
+						that.$emit('input', '');
+					});
+				},
+				addOption: function(){
+					if(this.selectedCode){
+						if($(this.$el).find("option[value='"+this.selectedCode+"']").length){
+							$(this.$el).val(this.selectedCode).trigger('change');
+						}else{
+							var dv = this.selectedName ? this.selectedCode + ' - ' + this.selectedName : this.selectedCode;
+							var option = new Option(dv, this.selectedCode, true, true);
+							$(this.$el).append(option).trigger('change');
+						}
+					}else{
+						$(this.$el).val('').trigger('change');
+					}
+				},
+				clear: function(){
+					$(this.$el).val('').trigger('change');
+					thiss.$emit('input', '');
+				}
+			},
+			destroyed: function(){
+				$(this.$el).off().select2('destroy');
+			}
+		})	
+	
+	
+	</script>
+
+</div>
+</html>	
+

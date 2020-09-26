@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" 
+		xmlns:th="http://www.thymeleaf.org"
+      	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" 
+      	layout:decorate="~{template1/template}">
+
+<th:block layout:fragment="page_title">Branch List</th:block>
+
+<div layout:fragment="page_content">
+
+	<div class="row" id="branch-list-component">
+		<branch-form :show="showBranchForm" :branch-id="editBranchId" @close="showBranchForm = false" @created="branchAdded"></branch-form>
+		<div class="col-12">
+            <div class="card">
+            	<div class="card-header">
+                	<h3 class="card-title">Branches</h3>
+					<div class="card-tools">
+						<button type="button" class="btn btn-block btn-outline-primary btn-xs" @click="addNew">Add New Branch</button>
+            		</div>              	
+            	</div>
+              	<!-- /.card-header -->
+              	<div class="card-body">
+              		<div class="row mb-3">
+	                	<div class="col-6">
+							<div class="input-group">
+	                  			<div class="input-group-append">
+	                    			<div class="btn btn-default">
+	                      				<i class="fas fa-search"></i>
+	                    			</div>
+	                  			</div>
+	                  			<input type="text" name="search" class="form-control" placeholder="Search By Name" v-model="filters.search">
+	                		</div>
+						</div>
+              		</div>
+              		
+                	<table class="table table-bordered table-hover">
+                  		<thead>
+                  			<tr>
+			                    <th>Name</th>
+			                    <th>Title</th>
+			                    <th>Area</th>
+			                    <th>City</th>
+			                    <th>Country</th>
+			                    <th>Created On</th>
+			                    <th>Action</th>
+		                  </tr>
+	                  	</thead>
+   	              		<tbody>
+   	              			<tr v-if="loading">
+   	              				<td colspan="7">
+	   	              				<div class="alert alert-info alert-dismissible">
+	                					<h4><i class="icon fas fa-spinner fa-spin"></i> Loading, Please Wait...</h4>
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              			<tr v-if="count == 0" v-cloak>
+   	              				<td colspan="7">
+	   	              				<div class="alert alert-warning">
+	                					<h5><i class="icon fas fa-exclamation-triangle"></i> Sorry</h5>
+	                					No record found
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              		
+							<tr v-if="!loading && !error" v-for="d in data">
+		                    	<td>{{d.name}}</td>
+		                    	<td>{{d.title}}</td>
+		                    	<td>{{d.area}}</td>
+		                    	<td>{{d.city}}</td>
+		                    	<td>{{d.country}}</td>
+		                    	<td>{{d.createdDate | formatDateTime}}</td>
+		                    	<td class="text-center">
+			                    	<a class="btn btn-primary btn-sm" href="javascript:void(0)" @click="edit(d.branchId)"><i class="fas fa-edit"></i> Edit</a>
+			                        <a class="btn btn-danger btn-sm" href="javascript:void(0)" @click="delete(d.branchId)"><i class="fas fa-trash"></i> Delete</a>
+		                      	</td>
+		                  	</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="card-footer clearfix">
+					<div class="dataTables_info">Showing {{currentPageStart}} to {{currentPageEnd}} of {{count}} records</div>
+					<div class="float-right">
+				        <pagination :total-rows="count" :max-pages="3" :current-page="pagination.currentPage" :page-size="pagination.pageSize" @changed="paginationHandler"></pagination>
+					</div>
+				</div>
+ 				
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+<th:block layout:fragment="scripts">
+	
+	<div th:include="vue-components/admin/branch-add::template"></div>
+	<div th:include="vue-components/admin/branch-add::scripts"></div>
+
+	<script th:src="@{/js/pagination/pagination.js}"></script>
+	
+	<script type="text/javascript">
+	new Vue({
+		  el: '#branch-list-component',
+		  data: {
+		    	loading: false,
+		    	error: false,
+		    	data: [],
+		    	count: 0,
+		    	filters:{
+		    		search: '',
+		    	},
+		    	pagination: {
+		    		currentPage: 1,
+		    		pageSize: 10
+		    	},
+		    	showBranchForm: false,
+		    	editBranchId: '',
+		    	
+		  },
+		  created: function(){
+			  this.loadData();
+		  },
+		  computed: {
+              currentPageStart: function(){
+                  return (this.pagination.currentPage - 1) * this.pagination.pageSize + Math.min(1,this.count);
+              },
+              currentPageEnd: function(){
+                  return Math.min((this.currentPageStart+this.pagination.pageSize-1), this.count);
+              },
+  
+		  },
+		  watch: {
+			  filters: {
+				  handler: function(newVal){
+					  this.loadData();
+				  },
+				  deep: true
+			  }
+		  },
+		  methods: {
+				
+			  paginationHandler: function(pageNo){
+				  this.pagination.pageNo = pageNo;
+				  this.loadData();
+			  },
+			  
+			  loadData: function(){
+				
+				this.loading = true;
+				this.error = false;
+					
+				var params = {};
+					
+				params['pageNo'] = this.pagination.pageNo;
+				params['pageSize'] = this.pagination.pageSize;
+				
+				$.each(this.filters, function(key, value){
+					if(value){
+						params[key] = value;
+					}
+				});
+				
+				var that = this;
+				
+				$.getJSON( appContext + "api/admin/branches", params, function( data ) {
+					  that.data = data.data;
+					  that.count = data.count;
+					  that.loading = false;
+					  that.error = false;
+				}).fail(function(response){
+					showErrorFromResponse(response);
+					  that.loading = false;
+					  that.error = true;
+				});
+				
+			  },
+			  addNew: function(){
+				  this.editBranchId= '';
+				  this.showBranchForm = true;
+			  },
+			  branchAdded: function(branchId){
+				  this.showBranchForm = false;
+				  this.loadData();
+			  },
+			  edit: function(branchId){
+				  this.editBranchId = branchId;
+				  this.showBranchForm = true;
+			  },
+			  "delete": function(branchId){
+				  
+			  }
+			  
+		  }
+	});
+	
+	</script>
+	
+	
+</th:block>
+
+</html>

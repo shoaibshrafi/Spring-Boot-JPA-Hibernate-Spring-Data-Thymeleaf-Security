@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="template">	
+    <script type="text/html" id="user-roles-form-component-template">
+		<div class="modal" tabindex="-1" role="dialog">
+	  		<div class="modal-dialog modal-lg" role="document">
+    			<div class="modal-content">
+	      				<div class="modal-header">
+	        				<h5 class="modal-title">Assign Roles to User {{username}}</h5>
+	        				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          					<span aria-hidden="true">&times;</span>
+	        				</button>
+	      				</div>
+	      				<div class="modal-body">
+			            	<div class="card card-primary">
+              					<div class="card-header">
+									<h3 class="card-title">Assign Role</h3>
+	                				<div class="card-tools">
+                  						<button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+                					</div>
+                						<!-- /.card-tools -->
+              					</div>
+              					<!-- /.card-header -->
+              					<div class="card-body">
+								<form id="user-role-form" method="post">
+									<div class="form-group row">
+                    					<label for="branchId" class="col-sm-1 col-form-label">Branch</label>
+                    					<div class="col-sm-5">
+					                		<select v-model="newBranchId" name="branchId" class="form-control required">
+	            				    			<option value="">Select Branch</option>
+	                							<option th:each="b : ${branches}" th:value="${b.branchId}">[[${b.name}]]</option>
+	                						</select>
+                    					</div>
+                    					<label for="roleCode" class="col-sm-1 col-form-label">Role</label>
+                    					<div class="col-sm-5">
+					                		<select v-model="newRoleCode" name="roleCode" class="form-control required">
+	            				    			<option value="">Select Role</option>
+	                							<option th:each="r : ${roles}" th:value="${r.roleCode}">[[${r.roleName}]]</option>
+	                						</select>
+                    					</div>
+                  					</div>
+								</form>
+              					</div>
+              					<!-- /.card-body -->
+				                <div class="card-footer">
+                			 	 	<button type="button" class="btn btn-info" @click="submitRole">Submit</button>
+		 			            </div>
+            				</div>
+								
+							<table class="table table-bordered table-hover">
+            	      			<thead>
+                	  				<tr>
+                    					<th>Branch</th>
+                    					<th>Role Name</th>
+			            	        	<th>Admin</th>
+			            	        	<th>Action</th>
+			                	  	</tr>
+	                  			</thead>
+   	              				<tbody>
+									<template v-for="d in data">
+									<tr v-for="r in d.roles">
+										<td>{{d.branchId}} - {{d.branchName}}</td>
+										<td>{{r.roleName}}</td>
+										<td><span class="badge bg-success" v-if="r.admin">Admin</span></td>
+										<td>
+					                          <button class="btn btn-danger btn-xs" @click="deleteUserRole(d.branchId, r.roleCode)" :disabled="processingDeleteCode == (d.branchId+'-'+r.roleCode)"><i class="fas fa-trash"></i> 
+					                          	<template v-if="processingDeleteCode == (d.branchId+'-'+r.roleCode)">Deleting...</template>
+			    		                      	<template v-else>Delete</template>
+			            		              </button>
+										</td>
+									</tr>
+									</template>
+								</tbody>
+							</table>
+						</div>
+						
+
+	      				<div class="modal-footer">
+	        				<button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="processing">Close</button>
+	      				</div>
+    			</div>
+  			</div>
+		</div>
+
+	</script>
+</div>
+	<div th:fragment="scripts">
+		<script type="text/javascript">
+		
+			Vue.component('user-roles-form', {
+				template: '#user-roles-form-component-template',
+				props: ["username", "show"],
+				data: function(){
+					return {
+						loading: false,
+						processing: false,
+						error: false,
+						data: [],
+						showDialog: false,
+				    	processingDeleteCode: '',
+				    	newRoleCode: '',
+				    	newBranchId:''
+					}
+				},
+				watch: {
+					show: function(newVal){
+						if(newVal){
+							$(this.$el).modal('show')
+						}
+					},
+					username: function(newVal){
+						if(newVal){
+							this.loadData();
+						}else{
+							this.data = Object.assign([]);
+						}					
+					}
+				},
+				created: function(){
+					var that = this;
+				},
+				mounted: function(){
+					var that = this;
+					$(this.$el).on('hidden.bs.modal', function(){
+						that.$emit('close');
+					});
+				},
+				methods: {
+					loadData: function(){
+						var that = this;
+						this.loading = true;
+						
+						$.getJSON( appContext + "api/users/" + this.username + '/roles', function( data ) {
+							  that.data = data;
+							  that.loading = false;
+							  that.error = false;
+						}).fail(function(response){
+								showErrorFromResponse(response)
+							  	that.loading = false;
+							  	that.error = true;
+						});
+						
+					},
+					deleteUserRole: function(branchId, roleCode){
+						  var that = this;
+						  js_confirm({
+							  title : "Delete User Role",
+							  text: "Are you sure, you want to delete this user role?",
+							  okLabel: "Yes, Delete it",
+							  cancelLabel: "Cancel",
+							  ok: function(){
+								  that.processingDeleteCode = branchId + "-" + roleCode;
+								  $.ajax({ url: appContext + 'api/users/' + that.username + '/branches/'+branchId+'/roles/' + roleCode, method: "DELETE" })
+						            .then(function (data) {
+										showSuccessMessage("User Role deleted successfully");
+										that.processingDeleteCode = '';
+										that.loadData();
+						            })
+						            .catch(function (err) {
+						            	showErrorFromResponse(err);
+										that.processingDeleteCode = '';
+						            });					  
+								}
+						  })
+					  },
+
+					  submitRole: function(){
+						var that = this;
+						
+						$('#user-role-form').ajaxSubmit({
+							beforeSubmit: function(formData, jqForm, options){
+								that.processing = $(jqForm).valid();
+								return that.processing;
+							},
+							success: function(data){
+								that.processing = false;
+								showSuccessMessage("Role assigned successfully");
+								that.loadData();
+							},
+							error: function(response){
+								showErrorFromResponse(response);
+								that.processing = false;
+							},
+							url: appContext + "api/users/" + that.username + "/branches/"+that.newBranchId+"/roles/" + that.newRoleCode,
+							type: 'POST'
+						});
+					}
+				}
+				
+			});
+		
+		</script>	
+	</div>
+
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="template">	
+    <script type="text/html" id="branch-form-component-template">
+		<div class="modal" tabindex="-1" role="dialog">
+	  		<div class="modal-dialog" role="document">
+    			<div class="modal-content">
+      				<form id="branch-form" @submit="submit">
+	      				<div class="modal-header">
+	        				<h5 class="modal-title" v-if="branchId">Edit Branch</h5>
+	        				<h5 class="modal-title" v-else>Add New Branch</h5>
+	        				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          					<span aria-hidden="true">&times;</span>
+	        				</button>
+	      				</div>
+	      				<div class="modal-body">
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="username">Name</label>
+                		    			<input type="text" class="form-control required" name="name" placeholder="Name" v-model="data.name">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="title">Title</label>
+                		    			<input type="text" class="form-control required" name="title" placeholder="Title" v-model="data.title">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="form-group">
+        		            			<label for="description">Description</label>
+                		    			<textarea class="form-control required" name="description" placeholder="Description" v-model="data.description"></textarea>
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="salesTaxRegNo">Sales Tax Reg. No</label>
+                		    			<input type="text" class="form-control required" name="salesTaxRegNo" placeholder="Sales Tax Registration No" v-model="data.salesTaxRegNo">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="ntn">National Tax No.</label>
+                		    			<input type="text" class="form-control required" name="ntn" placeholder="National Tax No" v-model="data.ntn">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="contactPerson1">Primary Contact Person</label>
+                		    			<input type="text" class="form-control required" name="contactPerson1" placeholder="Primary Contact Persosn" v-model="data.contactPerson1">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="contactPerson2">Secondary Contact Person</label>
+                		    			<input type="text" class="form-control required" name="contactPerson2" placeholder="Secondary Contact Persosn" v-model="data.contactPerson2">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="form-group">
+        		            			<label for="addressLine1">Address Line 1</label>
+                		    			<input type="text" class="form-control required" name="addressLine1" placeholder="Address Line 1" v-model="data.addressLine1">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="form-group">
+        		            			<label for="addressLine2">Address Line 2</label>
+                		    			<input type="text" class="form-control required" name="addressLine2" placeholder="Address Line 2" v-model="data.addressLine2">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="area">Area</label>
+                		    			<input type="text" class="form-control required" name="area" placeholder="Area" v-model="data.area">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="city">City</label>
+                		    			<input type="text" class="form-control required" name="city" placeholder="City" v-model="data.city">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="country">Country</label>
+                		    			<input type="text" class="form-control required" name="country" placeholder="Country" v-model="data.country">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="phone">Phone</label>
+                		    			<input type="text" class="form-control required" name="phone" placeholder="Phone" v-model="data.phone">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="mobileNo">Mobile</label>
+                		    			<input type="text" class="form-control required" name="mobileNo" placeholder="Mobile No" v-model="data.mobileNo">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="email">Email</label>
+                		    			<input type="email" class="form-control required" name="email" placeholder="Email" v-model="data.email">
+                  					</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="website">Website</label>
+                		    			<input type="text" class="form-control required" name="website" placeholder="Website" v-model="data.website">
+                  					</div>
+								</div>
+								<div class="col-sm-6">
+									<div class="form-group">
+        		            			<label for="head">Head Office</label>
+										<select name="head" class="form-control" v-model="data.head">
+											<option value="true">Yes</option>
+											<option value="false">No</option>
+										</select>
+                  					</div>
+								</div>
+							</div>
+	      				</div>
+	      				<div class="modal-footer">
+	        				<button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="processing">Close</button>
+	        				<button type="submit" class="btn btn-primary" :disabled="processing">
+								<template v-if="processing">Saving Branch...</template>
+								<template v-if="!processing">Save Branch</template>
+							</button>
+	      				</div>
+      				</form>
+    			</div>
+  			</div>
+		</div>
+
+	</script>
+</div>
+	<div th:fragment="scripts">
+		<script type="text/javascript">
+		
+			Vue.component('branch-form', {
+				template: '#branch-form-component-template',
+				props: ["branchId", "show"],
+				data: function(){
+					return {
+						loading: false,
+						processing: false,
+						error: false,
+						data: {},
+						showDialog: false
+					}
+				},
+				watch: {
+					show: function(newVal){
+						if(newVal){
+							$(this.$el).modal('show')
+						}
+					},
+					branchId: function(newVal){
+						if(newVal){
+							this.loadData();
+						}else{
+							this.data = Object.assign({});
+						}
+					}
+				},
+				created: function(){
+					var that = this;
+				},
+				mounted: function(){
+					var that = this;
+					$(this.$el).on('hidden.bs.modal', function(){
+						that.$emit('close');
+					});
+				},
+				methods: {
+					loadData: function(){
+						var that = this;
+						this.loading = true;
+						
+						$.getJSON( appContext + "api/admin/branches/" + this.branchId, function( data ) {
+							  that.data = data;
+							  that.loading = false;
+							  that.error = false;
+						}).fail(function(response){
+								showErrorFromResponse(response)
+							  	that.loading = false;
+							  	that.error = true;
+						});
+						
+					},
+					submit: function(e){
+						var that = this;
+						e.preventDefault();
+						var url = appContext + "api/admin/branches" + (!that.branchId? '' : '/' + that.branchId);
+						$('#branch-form').ajaxSubmit({
+							beforeSubmit: function(formData, jqForm, options){
+								that.processing = $(jqForm).valid();
+								return that.processing;
+							},
+							success: function(data){
+								that.processing = false;
+								if(that.branchId){
+									showSuccessMessage("Branch updated successfully");
+								}else{
+									showSuccessMessage("Branch added successfully");
+								}
+								that.$emit('created', {branchId: data});
+								$(that.$el).modal('hide')
+							},
+							error: function(response){
+								showErrorFromResponse(response);
+								that.processing = false;
+							},
+							url: url,
+							type: 'POST'
+						});
+					}
+				}
+				
+			});
+		
+		</script>	
+	</div>
+
+</html>

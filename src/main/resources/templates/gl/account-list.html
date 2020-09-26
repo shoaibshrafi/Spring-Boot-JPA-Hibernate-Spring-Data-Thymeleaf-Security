@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" 
+		xmlns:th="http://www.thymeleaf.org"
+      	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" 
+      	layout:decorate="~{template1/template}">
+
+<th:block layout:fragment="page_title">Account List</th:block>
+
+<div layout:fragment="page_content">
+
+	<div class="row" id="account-list-component">
+		<div class="col-3">
+			<account-form :show="showAccountForm" :type="newType"  :code="editCode" @close="showAccountForm = false" @created="accountAdded"></account-form>
+            <div class="card">
+            	<div class="card-header">
+                	<h3 class="card-title">Chart Of Accounts</h3>
+					<div class="card-tools">
+						<button class="btn btn-primary" v-if="selectedType.code" @click="addNewAccount(selectedType)">Add Account</button>
+					</div>
+				</div>
+              	<div class="card-body">
+					<div id="treeview"></div>
+              	</div>
+			</div>
+		
+		</div>
+		<div class="col-9">
+            <div class="card">
+            	<div class="card-header">
+                	<h3 class="card-title">Accounts</h3>
+					<div class="card-tools">
+						<button class="btn btn-primary" @click="addNewAccount({code: 10101, name: 'Cash'})">Add Cash Account</button>
+						<button class="btn btn-primary" @click="addNewAccount({code: 10102, name: 'Bank'})">Add Bank Account</button>
+						<button class="btn btn-primary" @click="addNewAccount({code: 10105, name: 'Receivable'})">Add Customer Account</button>
+						<button class="btn btn-primary" @click="addNewAccount({code: 20101, name: 'Payable'})">Add Vendor Account</button>
+            		</div>              	
+            	</div>
+              	<!-- /.card-header -->
+              	<div class="card-body">
+              		<div class="row mb-3">
+	                	<div class="col-6">
+							<div class="input-group">
+	                  			<div class="input-group-append">
+	                    			<div class="btn btn-default">
+	                      				<i class="fas fa-search"></i>
+	                    			</div>
+	                  			</div>
+	                  			<input type="text" name="search" class="form-control" placeholder="Search By Code, Name" v-model="filters.search">
+	                		</div>
+						</div>
+	                	<div class="col-6">
+						</div>
+              		</div>
+              		
+                	<table class="table table-bordered table-hover">
+                  		<thead>
+                  			<tr>
+                    			<th>Code</th>
+			                    <th>Name</th>
+			                    <th>Type</th>
+			                    <th>Created By</th>
+			                    <th>Created On</th>
+			                    <th>Action</th>
+		                  </tr>
+	                  	</thead>
+   	              		<tbody>
+   	              			<tr v-if="loading">
+   	              				<td colspan="6">
+	   	              				<div class="alert alert-info alert-dismissible">
+	                					<h4><i class="icon fas fa-spinner fa-spin"></i> Loading, Please Wait...</h4>
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              			<tr v-if="count == 0" v-cloak>
+   	              				<td colspan="6">
+	   	              				<div class="alert alert-warning">
+	                					<h5><i class="icon fas fa-exclamation-triangle"></i> Sorry</h5>
+	                					No record found
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              		
+							<tr v-if="!loading && !error" v-for="d in data">
+		                    	<td>{{d.code}}</td>
+		                    	<td>{{d.name}}</td>
+		                    	<td>{{d.typeName}}</td>
+		                    	<td>{{d.createdBy}}</td>
+		                    	<td>{{d.createdDate | formatDateTime}}</td>
+		                    	<td class="text-center">
+		                    	</td>
+		                  	</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="card-footer clearfix">
+					<div class="dataTables_info">Showing {{currentPageStart}} to {{currentPageEnd}} of {{count}} records</div>
+					<div class="float-right">
+				        <pagination :total-rows="count" :max-pages="3" :current-page="pagination.currentPage" :page-size="pagination.pageSize" @changed="paginationHandler"></pagination>
+					</div>
+				</div>
+ 				
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+<th:block layout:fragment="css">
+	<link rel="stylesheet" th:href="@{/js/bootstrap-treeview/bootstrap-treeview.min.css}">  
+</th:block>
+<th:block layout:fragment="scripts">
+	
+	<div th:include="vue-components/gl/account-add::template"></div>
+	<div th:include="vue-components/gl/account-add::scripts"></div>
+	<script th:src="@{/js/bootstrap-treeview/bootstrap-treeview.min.js}"></script>
+	<script th:src="@{/js/pagination/pagination.js}"></script>
+	
+	<script type="text/javascript">
+	new Vue({
+		  el: '#account-list-component',
+		  data: {
+		    	loading: false,
+		    	error: false,
+		    	data: [],
+		    	coa: [],
+		    	count: 0,
+		    	filters:{
+		    		search: '',
+		    		type: ''
+		    	},
+		    	pagination: {
+		    		currentPage: 1,
+		    		pageSize: 10
+		    	},
+		    	showUserForm: false,
+		    	editUsername: '',
+		    	showUserRolesForm: false,
+		    	editUserRolesUsername: '',
+		    	selectedType: {},
+		    	showAccountForm: false,
+		    	editCode: '',
+		    	newType: {},
+		  },
+		  created: function(){
+			  this.loadCOA();
+			  this.loadData();
+		  },
+		  computed: {
+              currentPageStart: function(){
+                  return (this.pagination.currentPage - 1) * this.pagination.pageSize + Math.min(1,this.count);
+              },
+              currentPageEnd: function(){
+                  return Math.min((this.currentPageStart+this.pagination.pageSize-1), this.count);
+              },
+  
+		  },
+		  watch: {
+			  filters: {
+				  handler: function(newVal){
+					  this.loadData();
+				  },
+				  deep: true
+			  }
+		  },
+		  methods: {
+				
+			  updateDataToTreeView: function(data){
+				  var that = this;
+					$.each(data, function(idx, item){
+						item['text'] = item.name;
+						item['icon'] = that.treeViewIcon(item);
+						if(item.subAccounts && item.subAccounts.length > 0){
+							item['nodes'] = that.updateDataToTreeView(item.subAccounts);
+						}
+					});
+					return data;
+			  },
+			  treeViewIcon: function(item){
+				if(item.level == 1){
+					return 'fa fa-folder';
+				}else if(item.level > 0 && (!item.subAccounts || item.subAccounts.length == 0) ){
+					return 'far fa-bookmark';
+				}else {
+					return 'fa fa-folder';
+				}
+			  },
+			  loadCOA: function(){
+				var that = this;
+				 $.ajax({ 
+					   url: appContext + "api/accounts/heads",
+					   method: "GET",
+					   dataType: "json",       
+				   	success: function(data){
+						that.coa = that.updateDataToTreeView(data);
+						$('#treeview').treeview({
+							color: "#428bca",
+					        expandIcon: 'fas fa-plus',
+					        collapseIcon: 'fas fa-minus',
+					        data: that.coa, 
+							levels: 10,
+							onNodeSelected: function(event, data) {
+								$('#treeview').treeview('toggleNodeExpanded', [ data.nodeId, { levels: 1, silent: true } ]);
+								if(data.level < 2){
+									that.selectedType = Object.assign({});
+								}else{
+									that.selectedType = data;
+								}
+								that.filters.type = data.code + "";
+							}
+							
+						});
+						$('#treeview').treeview('collapseAll');
+				   	}  
+				 });
+
+			  },
+			  
+			  paginationHandler: function(pageNo){
+				  this.pagination.pageNo = pageNo;
+				  this.loadData();
+			  },
+			  
+			  loadData: function(){
+				this.loading = true;
+				this.error = false;
+					
+				var params = {};
+					
+				params['pageNo'] = this.pagination.pageNo;
+				params['pageSize'] = this.pagination.pageSize;
+				
+				$.each(this.filters, function(key, value){
+					if(value){
+						params[key] = value;
+					}
+				});
+				
+				var that = this;
+				
+				$.getJSON( appContext + "api/accounts", params, function( data ) {
+					  that.data = data.data;
+					  that.count = data.count;
+					  that.loading = false;
+					  that.error = false;
+				}).fail(function(response){
+					showErrorFromRespsonse(response);
+					  that.loading = false;
+					  that.error = true;
+				});
+				
+			  },
+			  addNewAccount: function(type){
+				  this.newType = Object.assign({code: type.code, name: type.name});
+				  this.showAccountForm = true;
+			  },
+			  accountAdded: function(){
+				  
+			  }
+
+			  
+		  }
+	});
+		
+	</script>
+	
+	
+</th:block>
+
+</html>

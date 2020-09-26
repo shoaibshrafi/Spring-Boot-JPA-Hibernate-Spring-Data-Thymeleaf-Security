@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" 
+		xmlns:th="http://www.thymeleaf.org"
+      	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" 
+      	layout:decorate="~{template1/template}">
+
+<th:block layout:fragment="page_title">Users List</th:block>
+
+<div layout:fragment="page_content">
+
+	<div class="row" id="user-list-component">
+		<user-form :show="showUserForm" :username="editUsername" @close="showUserForm = false" @created="userAdded"></user-form>
+		<user-roles-form :show="showUserRolesForm" :username="editUserRolesUsername" @close="showUserRolesForm = false"></user-roles-form>
+		<div class="col-12">
+            <div class="card">
+            	<div class="card-header">
+                	<h3 class="card-title">Users</h3>
+					<div class="card-tools">
+						<button type="button" class="btn btn-block btn-outline-primary btn-xs" @click="addNewUser">Add New User</button>
+            		</div>              	
+            	</div>
+              	<!-- /.card-header -->
+              	<div class="card-body">
+              		<div class="row mb-3">
+	                	<div class="col-6">
+							<div class="input-group">
+	                  			<div class="input-group-append">
+	                    			<div class="btn btn-default">
+	                      				<i class="fas fa-search"></i>
+	                    			</div>
+	                  			</div>
+	                  			<input type="text" name="search" class="form-control" placeholder="Search By Username, First Name, Last Name, Email" v-model="filters.search">
+	                		</div>
+						</div>
+	                	<div class="col-6">
+	                		<select v-model="filters.roleCode" class="form-control">
+	                			<option value="">Select Role</option>
+	                			<option th:each="r : ${roles}" th:value="${r.roleCode}">[[${r.roleName}]]</option>
+	                		</select>
+						</div>
+              		</div>
+              		
+                	<table class="table table-bordered table-hover">
+                  		<thead>
+                  			<tr>
+                    			<th>Username</th>
+			                    <th>Name</th>
+			                    <th>Email</th>
+			                    <th>Created By</th>
+			                    <th>Created On</th>
+			                    <th>Action</th>
+		                  </tr>
+	                  	</thead>
+   	              		<tbody>
+   	              			<tr v-if="loading">
+   	              				<td colspan="7">
+	   	              				<div class="alert alert-info alert-dismissible">
+	                					<h4><i class="icon fas fa-spinner fa-spin"></i> Loading, Please Wait...</h4>
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              			<tr v-if="count == 0" v-cloak>
+   	              				<td colspan="7">
+	   	              				<div class="alert alert-warning">
+	                					<h5><i class="icon fas fa-exclamation-triangle"></i> Sorry</h5>
+	                					No record found
+	              					</div>
+   	              				</td>
+   	              			</tr>
+   	              		
+							<tr v-if="!loading && !error" v-for="d in data">
+		                    	<td>{{d.username}}</td>
+		                    	<td>{{d.firstName}} {{d.lastName}}</td>
+		                    	<td>{{d.email}}</td>
+		                    	<td>{{d.createdBy}}</td>
+		                    	<td>{{d.createdDate | formatDateTime}}</td>
+		                    	<td class="text-center">
+			                          <a class="btn btn-primary btn-sm" href="javascript:void(0)" @click="editUser(d.username)"><i class="fas fa-edit"></i> Edit</a>
+			                          <a class="btn btn-danger btn-sm" href="javascript:void(0)" @click="deleteUser(d.username)"><i class="fas fa-trash"></i> Delete</a>
+			                          <a class="btn btn-default btn-sm" href="javascript:void(0)" @click="viewRoles(d.username)"><i class="fas fa-user-tag"></i> Roles</a>
+		                    	</td>
+		                  	</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="card-footer clearfix">
+					<div class="dataTables_info">Showing {{currentPageStart}} to {{currentPageEnd}} of {{count}} records</div>
+					<div class="float-right">
+				        <pagination :total-rows="count" :max-pages="3" :current-page="pagination.currentPage" :page-size="pagination.pageSize" @changed="paginationHandler"></pagination>
+					</div>
+				</div>
+ 				
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+<th:block layout:fragment="scripts">
+	
+	<div th:include="vue-components/users/user-add::template"></div>
+	<div th:include="vue-components/users/user-add::scripts"></div>
+	<div th:include="vue-components/users/user-roles::template"></div>
+	<div th:include="vue-components/users/user-roles::scripts"></div>
+
+	<script th:src="@{/js/pagination/pagination.js}"></script>
+	
+	<script type="text/javascript">
+	new Vue({
+		  el: '#user-list-component',
+		  data: {
+		    	loading: false,
+		    	error: false,
+		    	data: [],
+		    	count: 0,
+		    	filters:{
+		    		search: '',
+		    		roleCode: ''
+		    	},
+		    	pagination: {
+		    		currentPage: 1,
+		    		pageSize: 10
+		    	},
+		    	showUserForm: false,
+		    	editUsername: '',
+		    	showUserRolesForm: false,
+		    	editUserRolesUsername: '',
+		    	
+		  },
+		  created: function(){
+			  this.loadData();
+		  },
+		  computed: {
+              currentPageStart: function(){
+                  return (this.pagination.currentPage - 1) * this.pagination.pageSize + Math.min(1,this.count);
+              },
+              currentPageEnd: function(){
+                  return Math.min((this.currentPageStart+this.pagination.pageSize-1), this.count);
+              },
+  
+		  },
+		  watch: {
+			  filters: {
+				  handler: function(newVal){
+					  this.loadData();
+				  },
+				  deep: true
+			  }
+		  },
+		  methods: {
+				
+			  paginationHandler: function(pageNo){
+				  this.pagination.pageNo = pageNo;
+				  this.loadData();
+			  },
+			  
+			  loadData: function(){
+				
+				this.loading = true;
+				this.error = false;
+					
+				var params = {};
+					
+				params['pageNo'] = this.pagination.pageNo;
+				params['pageSize'] = this.pagination.pageSize;
+				
+				$.each(this.filters, function(key, value){
+					if(value){
+						params[key] = value;
+					}
+				});
+				
+				var that = this;
+				
+				$.getJSON( appContext + "api/users", params, function( data ) {
+					  that.data = data.data;
+					  that.count = data.count;
+					  that.loading = false;
+					  that.error = false;
+				}).fail(function(response){
+					 alert(response); 
+					 console.log(response)
+					  that.loading = false;
+					  that.error = true;
+				});
+				
+			  },
+			  addNewUser: function(){
+				  this.editUsername = '';
+				  this.showUserForm = true;
+			  },
+			  userAdded: function(username){
+				  this.showUserForm = false;
+				  this.loadData();
+			  },
+			  editUser: function(username){
+				  this.editUsername = username;
+				  this.showUserForm = true;
+			  },
+			  deleteUser: function(username){
+				  
+			  },
+			  viewRoles: function(username){
+				  this.editUserRolesUsername = username;
+				  this.showUserRolesForm = true;
+			  }
+			  
+		  }
+	});
+	
+	</script>
+	
+	
+</th:block>
+
+</html>

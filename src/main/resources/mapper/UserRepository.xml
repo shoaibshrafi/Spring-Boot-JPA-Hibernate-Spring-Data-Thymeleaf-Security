@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jsoft.ams.user.repository.UserRepository">
+
+	<resultMap type="com.jsoft.ams.user.model.User" id="user-map" autoMapping="true">
+		<id column="username" property="username"/>
+		<collection property="userRoles" javaType="list" ofType="com.jsoft.ams.user.model.UserRole" autoMapping="true" columnPrefix="ur_">
+			<id column="branch_id" property="branchId"/>
+			<collection property="roles" javaType="list" ofType="com.jsoft.ams.user.model.Role" autoMapping="true" columnPrefix="r_">
+				<collection property="privileges" javaType="list" ofType="com.jsoft.ams.user.model.Privilege" autoMapping="true" columnPrefix="p_"></collection>
+			</collection>
+		</collection>
+	</resultMap>
+
+	<select id="findByUsername" parameterType="string" resultMap="user-map">
+		SELECT u.*,
+			ur.branch_id "ur_branch_id",
+			b.name "ur_branch_name",
+			b.title "ur_branch_title",
+			r.role_code "ur_r_role_code",
+			r.role_name "ur_r_role_name",
+			p.privilege_code "ur_r_p_privilege_code",
+			p.name "ur_r_p_name"
+			
+		FROM users u 
+		left join user_roles ur on ur.username = u.username
+		left join branches b on b.branch_id = ur.branch_id
+		left join roles r on r.role_code = ur.role_code
+		left join role_privileges rp on rp.role_code = r.role_code
+		left join privileges p on p.privilege_code = rp.privilege_code
+		WHERE u.username = #{username:VARCHAR}  
+		ORDER BY ur.branch_id
+	</select>
+	
+	<select id="listUsers" resultType="com.jsoft.ams.user.model.User" parameterType="map">
+		SELECT u.* FROM users u 
+		<include refid="listUsers_where"></include>
+		ORDER BY u.firstname, u.lastname
+	</select>
+	<select id="countUsers" resultType="long" parameterType="map">
+		SELECT count(u.*) FROM users u 
+		<include refid="listUsers_where"></include>
+	</select>
+
+	<sql id="listUsers_where">
+		<if test="(roleCode != null and !roleCode.empty) or branchId != null">
+			JOIN user_roles ur ON ur.username = u.username
+		</if>
+			WHERE 1=1
+		<if test="search != null and !search.empty">
+			AND (u.username like  '%' || #{search} || '%') OR 
+				(u.firstname like '%' || #{search} || '%') OR 
+				(u.lastname like  '%' || #{search} || '%') OR 
+				(u.email like '%' || #{search} || '%')
+		</if>
+		<if test="roleCode != null and !roleCode.empty">
+			AND ur.role_code = #{roleCode}
+		</if>
+		<if test="branchId != null">
+			AND ur.branch_id = #{branchId}
+		</if>
+	</sql>
+
+	<select id="listRoles" resultType="com.jsoft.ams.user.model.Role" parameterType="map">
+		SELECT r.* FROM roles r 
+		<include refid="listRoles_where"></include>
+	</select>
+	<select id="countRoles" resultType="long" parameterType="map">
+		SELECT count(r.*) FROM roles r 
+		<include refid="listRoles_where"></include>
+	</select>
+
+	<sql id="listRoles_where">
+			WHERE 1=1
+		<if test="search != null and !search.empty">
+			AND (r.role_code like  '%' || #{search} || '%') OR 
+				(r.role_name like '%' || #{search} || '%')
+		</if>
+	</sql>
+  
+  	<select id="getAppPrivilegesListForRole" resultMap="app-privilege-for-role">
+  		SELECT 
+			m.module_code,
+			m.module_name,
+			s.screen_code "s_screen_code",
+			s.screen_name "s_screen_name",
+			p.privilege_code "s_p_privilege_code",
+			p.name "s_p_name",
+			CASE WHEN rp.role_code IS NULL THEN 0 ELSE 1 END as "s_p_checked" 			
+  		FROM modules m
+  		JOIN screens s ON s.module_code = m.module_code
+  		JOIN privileges p ON p.screen_code = s.screen_code
+  		LEFT JOIN role_privileges rp ON rp.privilege_code = p.privilege_code AND rp.role_code = #{roleCode}	
+  	</select>
+  	
+  	<resultMap type="com.jsoft.ams.user.model.Module" id="app-privilege-for-role" autoMapping="true">
+  		<id property="moduleCode" column="module_code"/>
+  		<collection property="screens" autoMapping="true" javaType="list" ofType="com.jsoft.ams.user.model.Screen" columnPrefix="s_">
+	  		<id property="screenCode" column="screen_code"/>
+  			<collection property="privileges" autoMapping="true" javaType="list" ofType="com.jsoft.ams.user.model.Privilege" columnPrefix="p_">
+		  		<id property="privilegeCode" column="privilege_code"/>
+  			</collection>
+  		</collection>
+  	</resultMap>
+  	
+  	
+  	<insert id="saveRolePrivileges" parameterType="map">
+  		INSERT INTO role_privileges(role_code, privilege_code) VALUES
+  		<foreach collection="privilegeCodes" item="item" index="index" separator=",">
+  			(#{roleCode}, #{item})
+  		</foreach>
+  	</insert>
+  	
+	<select id="getUserRoles" parameterType="string" resultMap="user-roles-map">
+		SELECT
+			ur.username "username",
+			ur.branch_id "branch_id",
+			b.name "branch_name",
+			b.title "branch_title",
+			r.role_code "r_role_code",
+			r.role_name "r_role_name",
+			r.admin "r_admin",
+			p.privilege_code "r_p_privilege_code",
+			p.name "r_p_name"
+			
+		FROM user_roles ur
+		left join branches b on b.branch_id = ur.branch_id
+		left join roles r on r.role_code = ur.role_code
+		left join role_privileges rp on rp.role_code = r.role_code
+		left join privileges p on p.privilege_code = rp.privilege_code
+		WHERE ur.username = #{username:VARCHAR}  
+	</select>
+  	
+  	<resultMap type="com.jsoft.ams.user.model.UserRole" id="user-roles-map" autoMapping="true">
+		<id column="username"/>
+		<id column="branch_id" property="branchId"/>
+		<collection property="roles" javaType="list" ofType="com.jsoft.ams.user.model.Role" autoMapping="true" columnPrefix="r_">
+			<id column="role_code" property="roleCode"/>
+			<collection property="privileges" javaType="list" ofType="com.jsoft.ams.user.model.Privilege" autoMapping="true" columnPrefix="p_"></collection>
+		</collection>
+	</resultMap>
+  	
+</mapper>

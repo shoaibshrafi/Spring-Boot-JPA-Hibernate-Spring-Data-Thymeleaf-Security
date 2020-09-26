@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" 
+		xmlns:th="http://www.thymeleaf.org"
+      	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" 
+      	layout:decorate="~{template1/template}">
+
+<th:block layout:fragment="page_title">Chart of Accounts</th:block>
+
+<div layout:fragment="page_content">
+
+	<div class="row" id="coa-component">
+		<div class="col-12">
+            <div class="card">
+              	<!-- /.card-header -->
+              	<div class="card-body">
+                	<table class="table table-bordered table-hover">
+                  		<thead>
+                  			<tr>
+                    			<th>Code</th>
+			                    <th>Account Head</th>
+			                    <th>Debit</th>
+			                    <th>Credit</th>
+			                    <th>Balance</th>
+		                  </tr>
+	                  	</thead>
+   	              		<tbody th:each="mt : ${types}">
+   	              			<tr class="bg-primary">
+   	              				<td colspan="2">
+ 									<h5 th:if="${#strings.equals(mt.key, 'BS')}">Balance Sheet</h5>
+									<h5 th:if="${#strings.equals(mt.key, 'IS')}">Income Statement</h5>
+								</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              			</tr>
+   	              			<th:block th:each="at : ${mt.value}">
+   	              			<tr class="bg-secondary text-lg">
+   	              				<td>[[${at.code}]]</td>
+   	              				<td>[[${at.name}]]</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              			</tr>
+   	              			<tr th:each="sat : ${at.subAccountTypes}" class="bg-light text-lg">
+   	              				<td>[[${sat.code}]]</td>
+   	              				<td class="pl-5">[[${sat.name}]]</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              			</tr>
+   	              			</th:block>
+   	              		</tbody>
+   	              		<tfoot>
+   	              			<tr class="bg-black text-lg">
+   	              				<td colspan="2">Difference</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              				<td>0</td>
+   	              			</tr>
+   	              		</tfoot>
+ 	              	</table>
+					
+				</div>				
+			</div>
+		</div>
+	</div>
+</div>
+
+<th:block layout:fragment="scripts">
+		
+</th:block>
+
+</html>

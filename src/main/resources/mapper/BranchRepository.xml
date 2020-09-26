@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jsoft.ams.admin.repository.BranchRepository">
+	
+	<select id="list" resultType="com.jsoft.ams.admin.model.Branch" parameterType="map">
+		SELECT b.* FROM branches b 
+		<include refid="list_where"></include>
+	</select>
+	<select id="count" resultType="long" parameterType="map">
+		SELECT count(b.*) FROM branches b
+		<include refid="list_where"></include>
+	</select>
+
+	<sql id="list_where">
+			WHERE 1=1
+		<if test="search != null and !search.empty">
+			AND (lower(b.name) like  '%' || lower(#{search}) || '%') OR 
+				(lower(b.title) like '%' || lower(#{search}) || '%')
+		</if>
+	</sql>
+
+
+</mapper>

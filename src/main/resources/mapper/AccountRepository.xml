@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jsoft.ams.gl.repository.AccountRepository">
+
+	<resultMap type="com.jsoft.ams.gl.model.Account" id="acc-types-group-parent-map" autoMapping="true">
+		<id column="id" property="id"/>
+		<collection property="subAccounts" javaType="list" ofType="com.jsoft.ams.gl.model.Account" autoMapping="true" columnPrefix="c_">
+			<id column="id" property="id"/>
+		</collection>
+	</resultMap>
+
+	<select id="listAccountTypesGroupByParent" resultMap="acc-types-group-parent-map">
+
+		WITH RECURSIVE menu_tree (id, code, name, type, level, parent_id, sequence) 
+		AS ( 
+  			SELECT id, code, name, type, 0, parent_id, 1 FROM accounts WHERE parent_id is NULL AND group_account = 1
+ 
+	  		UNION ALL
+  			
+  			SELECT
+    			a.id, a.code, a.name, a.type, mt.level + 1, mt.id, mt.sequence 
+  			FROM accounts a, menu_tree mt 
+  			WHERE a.parent_id = mt.id and group_account = 1
+		) 
+		SELECT * FROM menu_tree 
+		WHERE level > 0 
+		ORDER BY level, parent_id, sequence;
+
+	</select>
+	
+	<select id="list" resultType="com.jsoft.ams.gl.model.Account" parameterType="map">
+		SELECT a.*, b.name "typeName" FROM accounts a 
+		left join accounts b on b.code = a.parent_code
+		<include refid="list_where"></include>
+		ORDER BY SUBSTRING(to_char(a.code), 1, 3), a.type, a.code
+	</select>
+	<select id="count" resultType="long" parameterType="map">
+		SELECT count(a.*) FROM accounts a 
+		<include refid="list_where"></include>
+	</select>
+
+	<sql id="list_where">
+			WHERE 1=1
+		<if test="search != null and !search.empty">
+			AND (a.name like  '%' || #{search} || '%') OR 
+				(a.title like '%' || #{search} || '%') OR 
+				(to_char(a.code) like  '%' || #{search} || '%')
+		</if>
+		<if test="type != null and !type.empty">
+			AND to_char(a.type) LIKE to_char(#{type}) || '%'
+		</if>
+		<if test="groupAccount != null">
+			AND a.group_account = #{groupAccount}
+		</if>
+		<if test="levelGt != null">
+			AND a.level > #{levelGt}
+		</if>
+	</sql>
+
+</mapper>
